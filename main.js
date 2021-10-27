@@ -1,15 +1,8 @@
-const $arenas = document.querySelector('.arenas');
-const $randomButton = document.querySelector('.button');
-const $formFight = document.querySelector('.control');
-const $chat = document.querySelector('.chat');
-
-
-const HIT = {
-    head: 30,
-    body: 25,
-    foot: 20,
-}
-const ATTACK = ['head', 'body', 'foot'];
+import { getRandom } from "./utils.js";
+import { HIT} from "./constants.js";
+import { generateLog } from "./logging.js";
+import { createPlayer, $arenas, enemyAttack, createReloadButton, $formFight, 
+    $randomButton, playerTurn, checkRoundEnd } from "./game.js";
 
 const p1 = {
     player : 1,
@@ -39,55 +32,6 @@ const p2 = {
     }
 }
 
-function createElement(tag, className) {
-    const $tag = document.createElement(tag);
-    if (className) {
-        $tag.className = className;
-    }
-    return $tag;
-}
-
-const createPlayer = function (player) {
-    const $player = createElement('div', 'player'+player.player);
-
-    const $progressbar = createElement('div', 'progressbar');
-
-    const $life = createElement('div', 'life');
-    $life.style.width = `${player.hp}%`;
-    $progressbar.appendChild($life);
-
-    const $name = createElement('div', 'name');
-    $name.innerText=player.name;
-    $progressbar.appendChild($name);
-
-    const $character = createElement('div', 'character');
-
-    const $avatar = createElement('img');
-    $avatar.src=player.img;
-    $character.appendChild($avatar);
-
-    $player.appendChild($progressbar);
-    $player.appendChild($character);
-
-    return $player;
-}
-
-function showResult(name){
-    const $loseTitle = createElement('div', 'loseTitle');
-    if(name){
-        $loseTitle.innerText = name + ' win';
-    }
-    else {
-        $loseTitle.innerText = 'DRAW';
-    }
-
-    return $loseTitle;
-}
-
-function getRandom(border){
-    return Math.ceil(Math.random() * border);
-}
-
 function changeHP(wounds){
     if( this.hp >= wounds){
         this.hp -= wounds;
@@ -103,93 +47,6 @@ function elHp(){
 
 function renderHp(){
     this.elHp().style.width =this.hp+'%';
-}
-
-function createReloadButton(){
-    const $reloadWrapper = createElement('div', 'reloadWrap');
-    const $reloadButton = createElement('button','button');
-    $reloadButton.innerText = "Reload";
-    $reloadButton.addEventListener('click', () => { document.location.reload();} );
-    $reloadWrapper.appendChild($reloadButton);
-
-    return $reloadWrapper;
-}
-
-$arenas.appendChild(createPlayer(p1));
-$arenas.appendChild(createPlayer(p2));
-
-function enemyAttack() {
-    const hit = ATTACK[getRandom(3) - 1];
-    const defense = ATTACK[getRandom(3) - 1];
-
-    return {
-        value: getRandom(HIT[hit]),
-        hit,
-        defense
-    }
-}
-
-function normalizeToTwoDigit(num) {
-    return num.toString().length > 1 ? num : `0${num}`;
-}
-
-function generateLog(type, player1, player2, wounds=undefined){
-    let text;
-    const date = new Date(); 
-    const normalizedTime = `${normalizeToTwoDigit(date.getHours())}:${normalizeToTwoDigit(date.getMinutes())}:${normalizeToTwoDigit(date.getSeconds())} `;
-    switch(type){
-        case "start":
-            text = logs[type]
-                .replace('[time]', normalizedTime)
-                .replace('[player1]', player1.name)
-                .replace('[player2]', player2.name)
-            break;
-        case 'draw' :
-            text = logs[type];
-            break;
-        case 'end':
-            text = logs[type][getRandom(logs[type].length) - 1]
-                .replace('[playerWins]', player1 )
-                .replace('[playerLose]', player2);
-            break;
-        default:
-            text = `${normalizedTime} ` +
-                logs[type][getRandom(logs[type].length) - 1]
-                    .replace('[playerKick]', player2)
-                    .replace('[playerDefence]', player1.name)
-                + ` ${player1.name}: - ${wounds} hp [${player1.hp}/100]`;
-            break;
-
-    }
-    const result = `<p>${text}</p>`;
-    $chat.insertAdjacentHTML('afterbegin',result);
-}
-
-function playerTurn(player, enemyName, playerAct, enemyAct){
-    let wounds = 0;
-    if(  playerAct.defense === enemyAct.hit ) {
-        wounds = Math.ceil(enemyAct.value/5);
-        player.changeHP(wounds);
-        generateLog('defence', player, enemyName,wounds);
-    } else {
-        wounds =  enemyAct.value;
-        player.changeHP(wounds);
-        generateLog('hit', player, enemyName,wounds);
-    }
-    player.renderHp();
-}
-
-function checkRoundEnd(){
-    if ( p1.hp === 0 && p2.hp === 0 ){
-        $arenas.appendChild(showResult());
-        generateLog('draw');
-    } else if(p2.hp === 0){
-        $arenas.appendChild(showResult(p1.name));
-        generateLog('end', p1.name, p2.name);
-    } else if(p1.hp === 0) {
-        $arenas.appendChild(showResult(p2.name));
-        generateLog('end', p2.name, p1.name);
-    }
 }
 
 $formFight.addEventListener('submit', function (event) {
@@ -208,8 +65,6 @@ $formFight.addEventListener('submit', function (event) {
         item.checked = false;
     }
 
-    console.log(player);
-    console.log(enemy);
     playerTurn(p1, p2.name, player, enemy)
     playerTurn(p2, p1.name, enemy, player);
 
@@ -218,8 +73,10 @@ $formFight.addEventListener('submit', function (event) {
         $arenas.appendChild(createReloadButton());
     }
 
-    checkRoundEnd();
+    checkRoundEnd(p1,p2);
 
 });
 
+$arenas.appendChild(createPlayer(p1));
+$arenas.appendChild(createPlayer(p2));
 generateLog('start', p1, p2);
