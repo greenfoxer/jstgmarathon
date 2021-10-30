@@ -1,94 +1,160 @@
 import { createElement, getRandom } from "./utils.js";
 import { ATTACK, HIT } from "./constants.js";
 import { generateLog } from "./logging.js";
+import Player from "./player.js";
 
-export const $arenas = document.querySelector('.arenas');
-export const $randomButton = document.querySelector('.button');
-export const $formFight = document.querySelector('.control');
-export const $chat = document.querySelector('.chat');
-
-export const createPlayer = (player) => {
-    const $player = createElement('div', 'player'+player.player);
-
-    const $progressbar = createElement('div', 'progressbar');
-
-    const $life = createElement('div', 'life');
-    $life.style.width = `${player.hp}%`;
-    $progressbar.appendChild($life);
-
-    const $name = createElement('div', 'name');
-    $name.innerText=player.name;
-    $progressbar.appendChild($name);
-
-    const $character = createElement('div', 'character');
-
-    const $avatar = createElement('img');
-    $avatar.src=player.img;
-    $character.appendChild($avatar);
-
-    $player.appendChild($progressbar);
-    $player.appendChild($character);
-
-    return $player;
-}
-
-export const showResult = (name) => {
-    const $loseTitle = createElement('div', 'loseTitle');
-    if(name){
-        $loseTitle.innerText = name + ' win';
-    }
-    else {
-        $loseTitle.innerText = 'DRAW';
+class Game{
+    constructor(){
+        this.$arenas = document.querySelector('.arenas');
+        this.$randomButton = document.querySelector('.button');
+        this.$formFight = document.querySelector('.control');
+        this.$chat = document.querySelector('.chat');
     }
 
-    return $loseTitle;
-}
-
-export function playerTurn(player, enemyName, playerAct, enemyAct){
-    let wounds = 0;
-    if(  playerAct.defense === enemyAct.hit ) {
-        wounds = Math.ceil(enemyAct.value/5);
-        player.changeHP(wounds);
-        generateLog('defence', player, enemyName,wounds);
-    } else {
-        wounds =  enemyAct.value;
-        player.changeHP(wounds);
-        generateLog('hit', player, enemyName,wounds);
+    checkRoundEnd = (p1, p2) => {
+        if ( p1.hp === 0 && p2.hp === 0 ){
+            this.$arenas.appendChild(this.showResult());
+            generateLog('draw');
+        } else if(p2.hp === 0){
+            this.$arenas.appendChild(this.showResult(p1.name));
+            generateLog('end', p1.name, p2.name);
+        } else if(p1.hp === 0) {
+            this.$arenas.appendChild(this.showResult(p2.name));
+            generateLog('end', p2.name, p1.name);
+        }
     }
-    player.renderHp();
-}
 
-export function checkRoundEnd(p1, p2){
-    if ( p1.hp === 0 && p2.hp === 0 ){
-        $arenas.appendChild(showResult());
-        generateLog('draw');
-    } else if(p2.hp === 0){
-        $arenas.appendChild(showResult(p1.name));
-        generateLog('end', p1.name, p2.name);
-    } else if(p1.hp === 0) {
-        $arenas.appendChild(showResult(p2.name));
-        generateLog('end', p2.name, p1.name);
+    enemyAttack = ( hit, defense) => {
+        //const hit = ATTACK[getRandom(3) - 1];
+        hit = hit ? hit : ATTACK[getRandom(3) - 1];
+        defense = defense ? defense : ATTACK[getRandom(3) - 1];
+    
+        return {
+            value: getRandom(HIT[hit]),
+            hit,
+            defense
+        }
+    }
+
+    createReloadButton = () => {
+        const $reloadWrapper = createElement('div', 'reloadWrap');
+        const $reloadButton = createElement('button','button');
+        $reloadButton.innerText = "Reload";
+        $reloadButton.addEventListener('click', () => { document.location.reload();} );
+        $reloadWrapper.appendChild($reloadButton);
+    
+        return $reloadWrapper;
+    }
+
+    playerTurn = (player, enemyName, playerAct, enemyAct) => {
+        let wounds = 0;
+        if(  playerAct.defense === enemyAct.hit ) {
+            wounds = Math.ceil(enemyAct.value/5);
+            player.changeHP(wounds);
+            generateLog('defence', player, enemyName,wounds);
+        } else {
+            wounds =  enemyAct.value;
+            player.changeHP(wounds);
+            generateLog('hit', player, enemyName,wounds);
+        }
+        player.renderHp();
+    }
+
+    showResult = (name) => {
+        const $loseTitle = createElement('div', 'loseTitle');
+        if(name){
+            $loseTitle.innerText = name + ' win';
+        }
+        else {
+            $loseTitle.innerText = 'DRAW';
+        }
+    
+        return $loseTitle;
+    }
+
+    createPlayer = ({player, hp, name, img}) => {
+        const $player = createElement('div', 'player'+player);
+    
+        const $progressbar = createElement('div', 'progressbar');
+    
+        const $life = createElement('div', 'life');
+        $life.style.width = `${hp}%`;
+        $progressbar.appendChild($life);
+    
+        const $name = createElement('div', 'name');
+        $name.innerText=name;
+        $progressbar.appendChild($name);
+    
+        const $character = createElement('div', 'character');
+    
+        const $avatar = createElement('img');
+        $avatar.src=img;
+        $character.appendChild($avatar);
+    
+        $player.appendChild($progressbar);
+        $player.appendChild($character);
+    
+        return $player;
+    }
+
+    start = () => {
+        const p1 = new Player ({
+            player : 1,
+            name : 'Kitana',
+            hp : 100,
+            img : 'http://reactmarathon-api.herokuapp.com/assets/kitana.gif',
+        });
+        
+        const p2 = new Player({
+            player : 2,
+            name : 'Subzero',
+            hp : 100,
+            img : 'http://reactmarathon-api.herokuapp.com/assets/subzero.gif',
+        });
+
+        //оказывается в эвент можно прокинуть так контекст
+        //const instance = this;
+        
+        this.$formFight.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            //И получить его потом тут.
+            //console.log('instance', instance);
+
+            const enemy = GameInstance.enemyAttack();
+            const player = {};
+        
+            for(let item of GameInstance.$formFight){
+                if ( item.checked && item.name === 'hit'){
+                    player.value = getRandom(HIT[item.value]);
+                    player.hit = item.value;
+                }
+                if ( item.checked && item.name === 'defence'){
+                    player.defense = item.value;
+                }
+                item.checked = false;
+            }
+        
+            GameInstance.playerTurn(p1, p2.name, player, enemy)
+            GameInstance.playerTurn(p2, p1.name, enemy, player);
+        
+            if ( p1.hp === 0 || p2.hp === 0 ) { 
+                GameInstance.$randomButton.disabled = true;
+                GameInstance.$arenas.appendChild(GameInstance.createReloadButton());
+            }
+        
+            GameInstance.checkRoundEnd(p1,p2);
+        
+        });
+        
+        this.$arenas.appendChild(this.createPlayer(p1));
+        this.$arenas.appendChild(this.createPlayer(p2));
+        generateLog('start', p1, p2);
     }
 }
 
-export const createReloadButton = () => {
-    const $reloadWrapper = createElement('div', 'reloadWrap');
-    const $reloadButton = createElement('button','button');
-    $reloadButton.innerText = "Reload";
-    $reloadButton.addEventListener('click', () => { document.location.reload();} );
-    $reloadWrapper.appendChild($reloadButton);
+const GameInstance = new Game();
 
-    return $reloadWrapper;
-}
+export default GameInstance;
 
-export const enemyAttack = ( hit, defense) => {
-    //const hit = ATTACK[getRandom(3) - 1];
-    hit = hit ? hit : ATTACK[getRandom(3) - 1];
-    defense = defense ? defense : ATTACK[getRandom(3) - 1];
-
-    return {
-        value: getRandom(HIT[hit]),
-        hit,
-        defense
-    }
-}
+export const {$chat} = GameInstance;

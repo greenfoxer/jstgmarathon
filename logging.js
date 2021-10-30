@@ -2,6 +2,7 @@ import { getRandom } from "./utils.js";
 import { $chat } from "./game.js";
 import { logs } from "./constants.js";
 
+
 const normalizeToTwoDigit = (num) => {
     return num.toString().length > 1 ? num : `0${num}`;
 }
