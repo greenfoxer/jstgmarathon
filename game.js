@@ -40,8 +40,8 @@ class Game{
     createReloadButton = () => {
         const $reloadWrapper = createElement('div', 'reloadWrap');
         const $reloadButton = createElement('button','button');
-        $reloadButton.innerText = "Reload";
-        $reloadButton.addEventListener('click', () => { document.location.reload();} );
+        $reloadButton.innerText = "NEXT";
+        $reloadButton.addEventListener('click', () => { window.location.pathname = 'index.html';} );
         $reloadWrapper.appendChild($reloadButton);
     
         return $reloadWrapper;
@@ -99,9 +99,8 @@ class Game{
     }
 
     start = async () => {
+        const player = JSON.parse(localStorage.getItem('player1'));
 
-        const allCharacters = await request.getAll();
-        const player = allCharacters[getRandom(allCharacters.length - 1)];
         const enemy = await request.getRandomEnemy();    
 
         const p1 = new Player ({
