@@ -1,6 +1,7 @@
 import { createElement, getRandom } from "./utils.js";
 import { ATTACK, HIT } from "./constants.js";
 import { generateLog } from "./logging.js";
+import request from "./request.js";
 import Player from "./player.js";
 
 class Game{
@@ -39,8 +40,8 @@ class Game{
     createReloadButton = () => {
         const $reloadWrapper = createElement('div', 'reloadWrap');
         const $reloadButton = createElement('button','button');
-        $reloadButton.innerText = "Reload";
-        $reloadButton.addEventListener('click', () => { document.location.reload();} );
+        $reloadButton.innerText = "NEXT";
+        $reloadButton.addEventListener('click', () => { window.location.pathname = 'index.html';} );
         $reloadWrapper.appendChild($reloadButton);
     
         return $reloadWrapper;
@@ -97,43 +98,44 @@ class Game{
         return $player;
     }
 
-    start = () => {
+    start = async () => {
+        const player = JSON.parse(localStorage.getItem('player1'));
+
+        const enemy = await request.getRandomEnemy();    
+
         const p1 = new Player ({
             player : 1,
-            name : 'Kitana',
-            hp : 100,
-            img : 'http://reactmarathon-api.herokuapp.com/assets/kitana.gif',
+            ...player,
         });
         
         const p2 = new Player({
             player : 2,
-            name : 'Subzero',
-            hp : 100,
-            img : 'http://reactmarathon-api.herokuapp.com/assets/subzero.gif',
+            ...enemy,
         });
 
         //оказывается в эвент можно прокинуть так контекст
         //const instance = this;
         
-        this.$formFight.addEventListener('submit', function (event) {
+        this.$formFight.addEventListener('submit', async function (event) {
             event.preventDefault();
 
             //И получить его потом тут.
             //console.log('instance', instance);
 
-            const enemy = GameInstance.enemyAttack();
-            const player = {};
+            let playerChoise = {};
         
             for(let item of GameInstance.$formFight){
                 if ( item.checked && item.name === 'hit'){
-                    player.value = getRandom(HIT[item.value]);
-                    player.hit = item.value;
+                    //playerChoise.value = getRandom(HIT[item.value]);
+                    playerChoise.hit = item.value;
                 }
                 if ( item.checked && item.name === 'defence'){
-                    player.defense = item.value;
+                    playerChoise.defence = item.value;
                 }
                 item.checked = false;
             }
+
+            const {player1:player,player2:enemy} = await request.letFight(playerChoise);
         
             GameInstance.playerTurn(p1, p2.name, player, enemy)
             GameInstance.playerTurn(p2, p1.name, enemy, player);
